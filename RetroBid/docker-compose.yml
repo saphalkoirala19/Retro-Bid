@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+      - /app/scripts/  # Prevent the scripts directory from being overwritten by the volume mount
+    environment:
+      - DEBUG=1
+      - DJANGO_SUPERUSER_EMAIL=a@b.com
+      - DJANGO_SUPERUSER_PASSWORD=Asd123!@#
+      - DJANGO_SUPERUSER_USERNAME=admin
+    restart: unless-stopped 

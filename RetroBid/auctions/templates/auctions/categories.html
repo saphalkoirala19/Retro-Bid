@@ -1,0 +1,15 @@
+{%extends "auctions/layout.html" %}
+{%block body%}
+<section>
+    <h2 class="mb-4">Categories</h2>
+    <ul class="category-list">
+        {%for category in categories%}
+        <li class="category-item">
+            <a href="{%url 'category' category.id%}">
+                <i class="fas fa-tag mr-2"></i>{{category}}
+            </a>
+        </li>
+        {%endfor%}
+    </ul>
+</section>
+{%endblock%}

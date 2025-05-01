@@ -1,0 +1,113 @@
+{% extends "auctions/layout.html" %}
+
+{% block title %}My Dashboard{% endblock %}
+
+{% block body %}
+<div class="dashboard-container">
+    <h2 class="mb-4"><i class="fas fa-tachometer-alt mr-2"></i>My Dashboard</h2>
+    
+    <div class="row">
+        <!-- My Bids Section -->
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="h5 mb-0"><i class="fas fa-gavel mr-2"></i>My Bids</h3>
+                </div>
+                <div class="card-body">
+                    {% if bid_listings %}
+                        <div class="list-group">
+                            {% for item in bid_listings %}
+                                <div class="list-group-item">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <h5 class="mb-1">{{ item.listing.title }}</h5>
+                                        <span class="badge {% if item.status == 'active' %}badge-primary{% else %}badge-secondary{% endif %}">
+                                            {{ item.status|title }}
+                                        </span>
+                                    </div>
+                                    <p class="mb-1">Your bid: ${{ item.user_bid }}</p>
+                                    <p class="mb-1">Current bid: ${{ item.listing.current_bid }}</p>
+                                    
+                                    {% if item.status == 'closed' %}
+                                        {% if item.won %}
+                                            <div class="alert alert-success mt-2">
+                                                <i class="fas fa-trophy mr-2"></i>You won this auction!
+                                                {% if item.contact_info_shared %}
+                                                    <div class="mt-2">
+                                                        <strong>Seller Contact Information:</strong>
+                                                        <p>Email: {{ item.listing.create_user.email }}</p>
+                                                        <p>Username: {{ item.listing.create_user.username }}</p>
+                                                    </div>
+                                                {% else %}
+                                                    <p class="mt-2">The seller has not shared their contact information yet.</p>
+                                                {% endif %}
+                                            </div>
+                                        {% else %}
+                                            <div class="alert alert-danger mt-2">
+                                                <i class="fas fa-times-circle mr-2"></i>You did not win this auction.
+                                            </div>
+                                        {% endif %}
+                                    {% endif %}
+                                    
+                                    <a href="{% url 'listing' item.listing.id %}" class="btn btn-sm btn-outline-primary mt-2">View Listing</a>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            You haven't placed any bids yet.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- My Closed Listings Section -->
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white">
+                    <h3 class="h5 mb-0"><i class="fas fa-archive mr-2"></i>My Closed Listings</h3>
+                </div>
+                <div class="card-body">
+                    {% if created_with_winners %}
+                        <div class="list-group">
+                            {% for item in created_with_winners %}
+                                <div class="list-group-item">
+                                    <h5 class="mb-1">{{ item.listing.title }}</h5>
+                                    <p class="mb-1">Final bid: ${{ item.listing.current_bid }}</p>
+                                    
+                                    {% if item.winner %}
+                                        <div class="alert alert-info mt-2">
+                                            <i class="fas fa-user mr-2"></i>Winner: {{ item.winner.username }}
+                                            
+                                            {% if item.contact_info_shared %}
+                                                <p class="mt-2">You have shared your contact information with the winner.</p>
+                                            {% else %}
+                                                <form action="{% url 'share_contact' item.winner_id %}" method="post" class="mt-2">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn btn-sm btn-primary">
+                                                        Share Contact Information
+                                                    </button>
+                                                </form>
+                                            {% endif %}
+                                        </div>
+                                    {% else %}
+                                        <div class="alert alert-warning mt-2">
+                                            <i class="fas fa-exclamation-triangle mr-2"></i>No winner for this auction.
+                                        </div>
+                                    {% endif %}
+                                    
+                                    <a href="{% url 'listing' item.listing.id %}" class="btn btn-sm btn-outline-primary mt-2">View Listing</a>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            You don't have any closed listings yet.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

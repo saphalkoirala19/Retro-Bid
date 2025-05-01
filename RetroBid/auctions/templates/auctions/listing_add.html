@@ -1,0 +1,122 @@
+{%extends "auctions/layout.html" %}
+
+{%block body%}
+<div class="card">
+    <div class="card-header">
+        <h2 class="mb-0"><i class="fas fa-plus-circle mr-2"></i>Create New Listing</h2>
+    </div>
+    <div class="card-body">
+        {% if message %}
+            <div class="alert alert-danger">{{ message }}</div>
+        {% endif %}
+        <form action="{%url 'listing_add'%}" method="post">
+            {%csrf_token%}
+            <div class="form-group">
+                <label for="title"><i class="fas fa-heading mr-1"></i>Title</label>
+                <input autofocus type="text" class="form-control" id="title" name="title" required>
+            </div>
+            <div class="form-group">
+                <label for="description"><i class="fas fa-align-left mr-1"></i>Description</label>
+                <textarea class="form-control" id="description" name="description" rows="4" required></textarea>
+            </div>
+            <div class="form-group">
+                <label for="category"><i class="fas fa-tag mr-1"></i>Category</label>
+                <select name="category" id="category" class="form-control">
+                    {% for category in categories %}
+                        <option value="{{ category.id }}">{{ category }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="auction_type"><i class="fas fa-gavel mr-1"></i>Auction Type</label>
+                <select name="auction_type" id="auction_type" class="form-control" onchange="toggleAuctionFields()">
+                    <option value="english">English Auction (Ascending Price)</option>
+                    <option value="dutch">Dutch Auction (Descending Price)</option>
+                </select>
+                <small class="form-text text-muted">
+                    <strong>English Auction:</strong> Bidders compete by placing increasingly higher bids. Highest bidder wins.<br>
+                    <strong>Dutch Auction:</strong> Price starts high and decreases over time. First bidder wins at current price.
+                </small>
+            </div>
+            
+            <!-- English Auction Fields -->
+            <div id="english-fields">
+                <div class="form-group">
+                    <label for="starting_bid"><i class="fas fa-dollar-sign mr-1"></i>Starting Bid</label>
+                    <input type="number" class="form-control" id="starting_bid" name="starting_bid" step="0.01" min="0.01" required>
+                </div>
+            </div>
+            
+            <!-- Dutch Auction Fields -->
+            <div id="dutch-fields" style="display: none;">
+                <div class="form-group">
+                    <label for="dutch_start_price"><i class="fas fa-dollar-sign mr-1"></i>Starting Price</label>
+                    <input type="number" class="form-control" id="dutch_start_price" name="dutch_start_price" step="0.01" min="0.01">
+                    <small class="form-text text-muted">The initial (highest) price of the auction</small>
+                </div>
+                <div class="form-group">
+                    <label for="dutch_reserve_price"><i class="fas fa-dollar-sign mr-1"></i>Reserve Price</label>
+                    <input type="number" class="form-control" id="dutch_reserve_price" name="dutch_reserve_price" step="0.01" min="0.01">
+                    <small class="form-text text-muted">The minimum price you're willing to accept</small>
+                </div>
+                <div class="form-group">
+                    <label for="dutch_decrement"><i class="fas fa-arrow-down mr-1"></i>Price Decrement</label>
+                    <input type="number" class="form-control" id="dutch_decrement" name="dutch_decrement" step="0.01" min="0.01">
+                    <small class="form-text text-muted">How much the price decreases each interval</small>
+                </div>
+                <div class="form-group">
+                    <label for="dutch_decrement_interval"><i class="fas fa-clock mr-1"></i>Decrement Interval (seconds)</label>
+                    <input type="number" class="form-control" id="dutch_decrement_interval" name="dutch_decrement_interval" min="1" value="60">
+                    <small class="form-text text-muted">How often the price decreases (in seconds)</small>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="image_url"><i class="fas fa-image mr-1"></i>Image URL</label>
+                <input type="url" class="form-control" id="image_url" name="image_url" placeholder="https://example.com/image.jpg">
+                <small class="form-text text-muted">Optional: Add a URL to an image of your item</small>
+            </div>
+            <button type="submit" class="btn btn-primary btn-lg">
+                <i class="fas fa-save mr-1"></i> Create Listing
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+    function toggleAuctionFields() {
+        const auctionType = document.getElementById('auction_type').value;
+        const englishFields = document.getElementById('english-fields');
+        const dutchFields = document.getElementById('dutch-fields');
+        
+        if (auctionType === 'english') {
+            englishFields.style.display = 'block';
+            dutchFields.style.display = 'none';
+            
+            // Make English fields required
+            document.getElementById('starting_bid').required = true;
+            
+            // Make Dutch fields not required
+            document.getElementById('dutch_start_price').required = false;
+            document.getElementById('dutch_reserve_price').required = false;
+            document.getElementById('dutch_decrement').required = false;
+            document.getElementById('dutch_decrement_interval').required = false;
+        } else {
+            englishFields.style.display = 'none';
+            dutchFields.style.display = 'block';
+            
+            // Make English fields not required
+            document.getElementById('starting_bid').required = false;
+            
+            // Make Dutch fields required
+            document.getElementById('dutch_start_price').required = true;
+            document.getElementById('dutch_reserve_price').required = true;
+            document.getElementById('dutch_decrement').required = true;
+            document.getElementById('dutch_decrement_interval').required = true;
+        }
+    }
+    
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', toggleAuctionFields);
+</script>
+{%endblock%}

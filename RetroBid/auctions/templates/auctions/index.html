@@ -1,0 +1,80 @@
+{% extends "auctions/layout.html" %}
+
+{% block body %}
+<div class="jumbotron">
+    <h1 class="display-4">
+        {% if watchlist %}
+            <i class="fas fa-heart mr-3"></i>Your Watchlist
+        {% elif category %}
+            <i class="fas fa-tag mr-3"></i>{{ category }}
+        {% else %}
+            <i class="fas fa-gavel mr-3"></i>Active Listings
+        {% endif %}
+    </h1>
+    <p class="lead">
+        {% if watchlist %}
+            Items you're watching
+        {% elif category %}
+            Browse items in {{ category }}
+        {% else %}
+            Browse all active auction listings
+        {% endif %}
+    </p>
+    <hr class="my-4">
+    <a href="{% url 'listing_add' %}" class="btn btn-primary btn-lg">
+        <i class="fas fa-plus-circle mr-2"></i>Create New Listing
+    </a>
+</div>
+
+{% if listings %}
+    <div class="row">
+        {% for listing in listings %}
+            <div class="col-md-4 mb-4">
+                <div class="card h-100">
+                    {% if listing.image_url %}
+                        <img src="{{ listing.image_url }}" class="card-img-top" alt="{{ listing.title }}" style="height: 200px; object-fit: cover;">
+                    {% else %}
+                        <div class="text-center py-5 bg-light">
+                            <i class="fas fa-image fa-5x text-secondary"></i>
+                        </div>
+                    {% endif %}
+                    <div class="card-body">
+                        <h5 class="card-title">{{ listing.title }}</h5>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            {% if listing.auction_type == 'dutch' %}
+                                <span class="badge badge-info">Dutch Auction</span>
+                            {% else %}
+                                <span class="badge badge-info">English Auction</span>
+                            {% endif %}
+                        </div>
+                        <p class="card-text">{{ listing.description|truncatechars:80 }}</p>
+                        {% if listing.auction_type == 'dutch' %}
+                            <p class="card-text">Current price: ${{ listing.current_bid }}</p>
+                        {% elif listing.current_bid != 0 %}
+                            <p class="card-text">Current bid: ${{ listing.current_bid }}</p>
+                        {% else %}
+                            <p class="card-text">Starting bid: ${{ listing.starting_bid }}</p>
+                        {% endif %}
+                    </div>
+                    <div class="card-footer">
+                        <a href="{% url 'listing' listing.id %}" class="btn btn-primary btn-block">
+                            <i class="fas fa-eye mr-1"></i> View Details
+                        </a>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle mr-2"></i>
+        {% if watchlist %}
+            You don't have any items in your watchlist yet.
+        {% elif category %}
+            There are no active listings in this category.
+        {% else %}
+            There are no active listings at the moment.
+        {% endif %}
+    </div>
+{% endif %}
+{% endblock %}

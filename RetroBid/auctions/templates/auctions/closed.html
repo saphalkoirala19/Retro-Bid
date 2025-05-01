@@ -1,0 +1,47 @@
+{% extends "auctions/layout.html" %}
+
+{% block body %}
+<section>
+    <h2 class="mb-4">Closed Listings</h2>
+    
+    <div class="row">
+        {% for listing in listings %}
+            <div class="col-md-4 mb-4">
+                <div class="listing-card">
+                    <a href="{% url 'listing' listing.id %}">
+                        {% if listing.image_url %}
+                            <img src="{{ listing.image_url }}" alt="{{ listing.title }}">
+                        {% else %}
+                            <div class="text-center py-5 bg-light">
+                                <i class="fas fa-image fa-4x text-secondary"></i>
+                            </div>
+                        {% endif %}
+                        <div class="listing-card-body">
+                            <h5 class="listing-card-title">{{ listing.title }}</h5>
+                            <p class="listing-card-text">{{ listing.description|truncatechars:100 }}</p>
+                            {% if listing.current_bid != 0 %}
+                                <p class="listing-card-price">Winning bid: ${{ listing.current_bid }}</p>
+                            {% else %}
+                                <p class="listing-card-price">Winning bid: ${{ listing.starting_bid }}</p>
+                            {% endif %}
+                            <p><strong>Winner: {{ listing.current_bidder }}</strong></p>
+                            {% if listing.current_bidder == request.user %}
+                                <div class="alert alert-info mb-0">You won this auction!</div>
+                            {% endif %}
+                        </div>
+                    </a>
+                    <div class="listing-card-footer">
+                        <small class="text-muted">Listed by {{ listing.create_user }}</small>
+                    </div>
+                </div>
+            </div>
+        {% empty %}
+            <div class="col-12">
+                <div class="alert alert-info">
+                    No closed listings available.
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

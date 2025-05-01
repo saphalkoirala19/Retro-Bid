@@ -1,0 +1,222 @@
+{%extends "auctions/layout.html" %}
+
+{%block body%}
+<div class="listing-detail">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2>{{ listing.title }}</h2>
+            <p class="text-muted">Listed by {{ listing.create_user }}</p>
+            {% if listing.auction_type == 'dutch' %}
+                <span class="badge badge-info">Dutch Auction</span>
+            {% else %}
+                <span class="badge badge-info">English Auction</span>
+            {% endif %}
+        </div>
+        <div class="col-md-4 text-md-right">
+            {% if listing.is_active %}
+                {% if not is_watched %}
+                    <form action="{%url 'watch_toggle' listing.id%}" method="post" class="d-inline">
+                        {%csrf_token%}
+                        <button type="submit" class="btn btn-primary">
+                            <i class="far fa-heart mr-1"></i> Add to Watchlist
+                        </button>
+                    </form>
+                {% else %}
+                    <form action="{%url 'watch_toggle' listing.id%}" method="post" class="d-inline">
+                        {%csrf_token%}
+                        <button type="submit" class="btn btn-secondary">
+                            <i class="fas fa-heart mr-1"></i> Remove from Watchlist
+                        </button>
+                    </form>
+                {% endif %}
+                
+                {% if listing.create_user == request.user %}
+                    <form action="{%url 'listing_close' listing.id%}" method="post" class="d-inline ml-2">
+                        {%csrf_token%}
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-times-circle mr-1"></i> Close Auction
+                        </button>
+                    </form>
+                {% endif %}
+            {% else %}
+                <span class="badge badge-danger p-2">Auction Closed</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            {% if listing.image_url %}
+                <div class="text-center">
+                    <img src="{{ listing.image_url }}" alt="{{ listing.title }}" class="img-fluid">
+                </div>
+            {% else %}
+                <div class="text-center py-5 bg-light mb-4">
+                    <i class="fas fa-image fa-5x text-secondary"></i>
+                    <p class="mt-3">No image available</p>
+                </div>
+            {% endif %}
+        </div>
+        
+        <div class="col-md-6">
+            <div class="listing-detail-info">
+                <ul>
+                    <li><strong>Description:</strong> {{ listing.description }}</li>
+                    {% if listing.auction_type == 'english' %}
+                        <li><strong>Starting Bid:</strong> ${{ listing.starting_bid }}</li>
+                    {% else %}
+                        <li><strong>Starting Price:</strong> ${{ listing.dutch_start_price }}</li>
+                        <li><strong>Reserve Price:</strong> ${{ listing.dutch_reserve_price }}</li>
+                        <li><strong>Price Decrement:</strong> ${{ listing.dutch_decrement }} every {{ listing.dutch_decrement_interval }} seconds</li>
+                    {% endif %}
+                    <li><strong>Category:</strong> {{ listing.category }}</li>
+                    <li><strong>Leading Bidder:</strong> {{ listing.current_bidder|default:"No bids yet" }}</li>
+                    
+                    {% if listing.auction_type == 'dutch' and listing.is_active %}
+                        <li><strong>Current Price:</strong> <span id="dutch-current-price">${{ listing.current_bid }}</span></li>
+                    {% else %}
+                        <li><strong>Current Bid:</strong> ${{ listing.current_bid|default:listing.starting_bid }}</li>
+                    {% endif %}
+                    
+                    <li><strong>Status:</strong> {% if listing.is_active %}<span class="text-success">Active</span>{% else %}<span class="text-danger">Closed</span>{% endif %}</li>
+                </ul>
+                
+                {% if not listing.is_active and listing.current_bidder == request.user %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-trophy mr-2"></i> Congratulations! You won this auction!
+                    </div>
+                {% endif %}
+                
+                {% if listing.is_active %}
+                    <div class="card mt-4">
+                        <div class="card-header">
+                            {% if listing.auction_type == 'dutch' %}
+                                <h5 class="mb-0">Accept Current Price</h5>
+                            {% else %}
+                                <h5 class="mb-0">Place Your Bid</h5>
+                            {% endif %}
+                        </div>
+                        <div class="card-body">
+                            {% if listing.auction_type == 'dutch' %}
+                                <div class="alert alert-info">
+                                    <p>This is a Dutch auction. The price starts high and decreases over time.</p>
+                                    <p>The first person to accept the current price wins the auction.</p>
+                                    <p>Current price: <strong id="dutch-price-display">${{ listing.current_bid }}</strong></p>
+                                </div>
+                                <form action="{%url 'bid_add' listing.id%}" method="post">
+                                    {%csrf_token%}
+                                    <button type="submit" class="btn btn-primary btn-lg btn-block">
+                                        <i class="fas fa-gavel mr-1"></i> Accept Current Price
+                                    </button>
+                                </form>
+                            {% else %}
+                                <form action="{%url 'bid_add' listing.id%}" method="post">
+                                    {%csrf_token%}
+                                    <div class="form-group">
+                                        <label for="amount">Enter bid amount ($):</label>
+                                        <input type="number" class="form-control" id="amount" name="amount" step="0.01" min="{{ listing.current_bid|default:listing.starting_bid }}">
+                                        <small class="form-text text-muted">
+                                            Minimum bid: ${{ listing.current_bid|default:listing.starting_bid }}
+                                        </small>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-gavel mr-1"></i> Place Bid
+                                    </button>
+                                </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="mb-0"><i class="fas fa-history mr-2"></i>Bid History</h3>
+            </div>
+            <div class="card-body">
+                {% if bids %}
+                    <ul class="bid-list">
+                        {% for bid in bids %}
+                            <li class="bid-item">
+                                <strong>{{ bid.bidder }}</strong> bid <span class="text-primary">${{ bid.amount }}</span>
+                                <div class="text-muted small">{{ bid.create_date }}</div>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="text-muted">No bids yet.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="mb-0"><i class="fas fa-comments mr-2"></i>Comments</h3>
+            </div>
+            <div class="card-body">
+                {% if comments %}
+                    <ul class="comment-list">
+                        {% for comment in comments %}
+                            <li class="comment-item">
+                                <div class="d-flex justify-content-between">
+                                    <strong>{{ comment.user }}</strong>
+                                    <small class="text-muted">{{ comment.create_date }}</small>
+                                </div>
+                                <div class="comment-content">{{ comment.content }}</div>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="text-muted">No comments yet.</p>
+                {% endif %}
+                
+                {% if listing.is_active %}
+                    <form action="{%url 'comment_add' listing.id%}" method="post" class="mt-3">
+                        {%csrf_token%}
+                        <div class="form-group">
+                            <label for="content">Add a comment:</label>
+                            <textarea class="form-control" id="content" name="content" rows="3"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-paper-plane mr-1"></i> Post Comment
+                        </button>
+                    </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if listing.auction_type == 'dutch' and listing.is_active %}
+<script>
+    // Function to update the Dutch auction price
+    function updateDutchPrice() {
+        fetch('{% url "get_dutch_price" listing.id %}')
+            .then(response => response.json())
+            .then(data => {
+                // Update price displays
+                document.getElementById('dutch-current-price').textContent = '$' + data.current_price.toFixed(2);
+                document.getElementById('dutch-price-display').textContent = '$' + data.current_price.toFixed(2);
+                
+                // If reserve price is reached, add a notification
+                if (data.reserve_reached) {
+                    const priceDisplay = document.getElementById('dutch-price-display');
+                    priceDisplay.innerHTML = '$' + data.current_price.toFixed(2) + ' <span class="badge badge-warning">Reserve Price Reached</span>';
+                }
+            })
+            .catch(error => console.error('Error updating Dutch price:', error));
+    }
+    
+    // Update price immediately and then every 5 seconds
+    updateDutchPrice();
+    setInterval(updateDutchPrice, 5000);
+</script>
+{% endif %}
+{%endblock%}
